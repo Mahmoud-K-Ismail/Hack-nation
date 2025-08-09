@@ -1,0 +1,5 @@
+.env
+HackathonOrchestrator/.env
+HackathonOrchestrator/credentials.json
+HackathonOrchestrator/token_*.json
+HackathonOrchestrator/__pycache__/

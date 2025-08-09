@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hackathon Orchestrator Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .kpi-card { background-color: #1F2937; }
+    .log-panel { background-color: #111827; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-sourced { background-color: #3B82F6; }
+    .status-contacted { background-color: #F59E0B; }
+    .status-accepted { background-color: #10B981; }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-200 antialiased">
+  <div class="container mx-auto p-4 md:p-8">
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-3xl md:text-4xl font-bold text-white">Hackathon Orchestrator</h1>
+      <p class="text-lg text-gray-400">AI-powered sourcing and scheduling for speakers & jurors.</p>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Input & Launch Section -->
+      <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+        <label for="sourcing-topic" class="block text-sm font-medium text-gray-300 mb-2">Sourcing Topic</label>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <input type="text" id="sourcing-topic" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 'AI in FinTech' or 'Decentralized Science'" />
+          <button id="launch-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">🚀 Launch Sourcing Agent</button>
+        </div>
+      </div>
+
+      <!-- Dashboard & Logs Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column: Dashboard -->
+        <div class="lg:col-span-1 flex flex-col gap-8">
+          <!-- KPI Cards -->
+          <div>
+            <h2 class="text-xl font-semibold text-white mb-4">Live Metrics</h2>
+            <div class="grid grid-cols-3 gap-4">
+              <div id="kpi-sourced" class="kpi-card p-4 rounded-lg text-center">
+                <p class="text-3xl font-bold">0</p>
+                <p class="text-sm text-gray-400">Sourced</p>
+              </div>
+              <div id="kpi-contacted" class="kpi-card p-4 rounded-lg text-center">
+                <p class="text-3xl font-bold">0</p>
+                <p class="text-sm text-gray-400">Contacted</p>
+              </div>
+              <div id="kpi-accepted" class="kpi-card p-4 rounded-lg text-center">
+                <p class="text-3xl font-bold">0</p>
+                <p class="text-sm text-gray-400">Accepted</p>
+              </div>
+            </div>
+          </div>
+          <!-- Candidate List -->
+          <div>
+            <h2 class="text-xl font-semibold text-white mb-4">Candidate Pipeline</h2>
+            <div id="candidate-list" class="space-y-3">
+              <!-- JS will populate this -->
+              <p class="text-gray-500 text-center py-4">Launch an agent to see candidates here.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Live Log -->
+        <div class="lg:col-span-2">
+          <h2 class="text-xl font-semibold text-white mb-4">Live Execution Log</h2>
+          <div id="log-panel" class="log-panel p-4 rounded-lg h-96 overflow-y-auto font-mono text-sm">
+            <p class="text-gray-500">Awaiting agent launch...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // --- DOM Elements ---
+    const launchBtn = document.getElementById('launch-btn');
+    const topicInput = document.getElementById('sourcing-topic');
+    const logPanel = document.getElementById('log-panel');
+    const candidateList = document.getElementById('candidate-list');
+    const kpiSourced = document.getElementById('kpi-sourced').querySelector('p:first-child');
+    const kpiContacted = document.getElementById('kpi-contacted').querySelector('p:first-child');
+    const kpiAccepted = document.getElementById('kpi-accepted').querySelector('p:first-child');
+
+    // --- State & Mock Data ---
+    let candidates = [];
+
+    // --- Core Functions ---
+    function addLog(message, type = 'info') {
+      const colors = { info: 'text-gray-400', success: 'text-green-400', agent: 'text-blue-400' };
+      const logEntry = document.createElement('p');
+      logEntry.innerHTML = `<span class="mr-2">${new Date().toLocaleTimeString()}</span> <span class="${colors[type]}">${message}</span>`;
+      logPanel.appendChild(logEntry);
+      logPanel.scrollTop = logPanel.scrollHeight; // Auto-scroll
+    }
+
+    function updateDashboard() {
+      kpiSourced.textContent = candidates.length;
+      kpiContacted.textContent = candidates.filter(c => c.status === 'Contacted' || c.status === 'Accepted').length;
+      kpiAccepted.textContent = candidates.filter(c => c.status === 'Accepted').length;
+
+      candidateList.innerHTML = '';
+      if (candidates.length === 0) {
+        candidateList.innerHTML = '<p class="text-gray-500 text-center py-4">Launch an agent to see candidates here.</p>';
+        return;
+      }
+
+      candidates.forEach(c => {
+        const statusClasses = { Sourced: 'status-sourced', Contacted: 'status-contacted', Accepted: 'status-accepted' };
+        const candidateEl = document.createElement('div');
+        candidateEl.className = 'kpi-card p-3 rounded-md flex items-center justify-between';
+        candidateEl.innerHTML = `
+          <div>
+            <p class="font-semibold text-white">${c.name}</p>
+            <p class="text-xs text-gray-400">${c.expertise}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium">${c.status}</span>
+            <div class="status-dot ${statusClasses[c.status]}"></div>
+          </div>
+        `;
+        candidateList.appendChild(candidateEl);
+      });
+    }
+
+    function simulateAgentWorkflow() {
+      const mockCandidates = [
+        { name: 'Dr. Evelyn Reed', email: 'e.reed@example.com', expertise: 'Quantum Computing', status: 'Sourced' },
+        { name: 'Marco Jin', email: 'm.jin@example.com', expertise: 'AI in FinTech', status: 'Sourced' },
+        { name: 'Anya Sharma', email: 'a.sharma@example.com', expertise: 'Decentralized Science', status: 'Sourced' },
+      ];
+
+      const steps = [
+        { delay: 1000, log: '▶️ SourcingAgent: Starting search...', action: () => {} },
+        { delay: 1500, log: 'SourcingAgent: Found 3 potential candidates.', action: () => { candidates = mockCandidates; updateDashboard(); } },
+        { delay: 500, log: '✅ SourcingAgent: Task complete. Passing results to SchedulingAgent.', action: () => {} },
+        { delay: 1000, log: '▶️ SchedulingAgent: Initializing outreach sequence...', action: () => {} },
+        { delay: 1500, log: 'SchedulingAgent: Sending outreach email to Dr. Evelyn Reed.', action: () => { candidates[0].status = 'Contacted'; updateDashboard(); } },
+        { delay: 1000, log: 'SchedulingAgent: Sending outreach email to Marco Jin.', action: () => { candidates[1].status = 'Contacted'; updateDashboard(); } },
+        { delay: 1200, log: 'SchedulingAgent: Sending outreach email to Anya Sharma.', action: () => { candidates[2].status = 'Contacted'; updateDashboard(); } },
+        { delay: 2000, log: 'SchedulingAgent: Received positive reply from Dr. Evelyn Reed. Scheduling meeting.', action: () => { candidates[0].status = 'Accepted'; updateDashboard(); } },
+        { delay: 1000, log: '✅ SchedulingAgent: Task complete.', action: () => {} },
+        { delay: 500, log: '🎉 Orchestration Complete.', type: 'success', action: () => { launchBtn.disabled = false; launchBtn.textContent = '🚀 Launch Sourcing Agent'; } },
+      ];
+
+      let cumulativeDelay = 0;
+      steps.forEach(step => {
+        cumulativeDelay += step.delay;
+        setTimeout(() => {
+          addLog(step.log, step.type || 'agent');
+          step.action();
+        }, cumulativeDelay);
+      });
+    }
+
+    // --- Event Listeners ---
+    launchBtn.addEventListener('click', () => {
+      const topic = topicInput.value.trim();
+      if (!topic) {
+        alert('Please enter a sourcing topic.');
+        return;
+      }
+
+      // Reset UI
+      launchBtn.disabled = true;
+      launchBtn.textContent = 'Agents Running...';
+      logPanel.innerHTML = '';
+      candidates = [];
+      updateDashboard();
+
+      addLog(`Initializing agents for topic: "${topic}"`, 'info');
+
+      // In a real app, you would make a fetch call here.
+      // For the demo, we simulate the workflow.
+      simulateAgentWorkflow();
+    });
+
+    // Initial state
+    updateDashboard();
+  </script>
+</body>
+</html>
