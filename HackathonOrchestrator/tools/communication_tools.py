@@ -13,7 +13,14 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from crewai_tools import BaseTool
+try:
+    from crewai_tools import BaseTool  # type: ignore
+except Exception:  # crewai_tools not required for API-only usage
+    class BaseTool:  # minimal stub to avoid hard dependency at import time
+        name: str = ""
+        description: str = ""
+        def _run(self, *args, **kwargs):
+            raise NotImplementedError
 
 
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
@@ -37,7 +44,11 @@ def _load_credentials(scopes: List[str], token_path: str) -> Credentials:
                     "Download OAuth 2.0 Client IDs JSON and save as credentials.json."
                 )
             flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, scopes)
-            creds = flow.run_local_server(port=0)
+            # Use non-interactive if running in a headless server; fall back to local server for dev
+            try:
+                creds = flow.run_local_server(port=0)
+            except Exception:
+                creds = flow.run_console()
         with open(token_path, "w") as token_file:
             token_file.write(creds.to_json())
     return creds
@@ -55,7 +66,7 @@ def _get_calendar_service():
 
 class CommunicationTools:
     @staticmethod
-    def send_email(to: str, subject: str, body: str) -> str:
+    def send_email(to: str, subject: str, body: str, *, ref_token: Optional[str] = None) -> str:
         """Send an email using Gmail API.
 
         Requires credentials.json and first-time OAuth authorization.
@@ -68,7 +79,8 @@ class CommunicationTools:
             sender = os.getenv("SENDER_EMAIL", "me")
             message["To"] = to
             message["From"] = sender
-            message["Subject"] = subject
+            # Add a reference token into the subject if provided for downstream correlation
+            message["Subject"] = f"{subject} [Ref:{ref_token}]" if ref_token else subject
             message.set_content(body)
 
             encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
@@ -81,9 +93,17 @@ class CommunicationTools:
                 .execute()
             )
             msg_id = sent.get("id")
+            thread_id = sent.get("threadId")
             print("\n--- GMAIL ---")
             print(f"Email sent. Message ID: {msg_id}")
-            return f"Email successfully sent to {to}. Message ID: {msg_id}"
+            result = {
+                "ok": True,
+                "to": to,
+                "messageId": msg_id,
+                "threadId": thread_id,
+                "refToken": ref_token,
+            }
+            return json.dumps(result)
         except HttpError as e:
             raise RuntimeError(f"Gmail API error: {e}") from e
 
@@ -160,6 +180,23 @@ class CommunicationTools:
             return json.dumps(result_summary)
         except HttpError as e:
             raise RuntimeError(f"Calendar API error: {e}") from e
+
+    @staticmethod
+    def search_replies_by_ref_token(ref_token: str, sender_email: Optional[str] = None, newer_than_days: int = 14) -> List[dict]:
+        """Search for Gmail messages that include the provided reference token in the subject.
+
+        Excludes messages sent by the sender to avoid matching our own outbounds.
+        Returns a list of message metadata dicts.
+        """
+        service = _get_gmail_service()
+        sender = sender_email or os.getenv("SENDER_EMAIL")
+        # Gmail search query: subject contains token, newer than X days, exclude messages from sender
+        q_parts = [f"subject:Ref:{ref_token}", f"newer_than:{int(newer_than_days)}d"]
+        if sender:
+            q_parts.append(f"-from:{sender}")
+        q = " ".join(q_parts)
+        resp = service.users().messages().list(userId="me", q=q, maxResults=50).execute()
+        return resp.get("messages", []) or []
 
 
 class SendEmailTool(BaseTool):

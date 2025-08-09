@@ -1,4 +1,6 @@
 import os
+import time
+from typing import Callable, List, Optional
 from dotenv import load_dotenv
 
 
@@ -7,25 +9,74 @@ load_dotenv()
 
 # --- Main Execution ---
 
-def run_orchestrator(topic: str = "AI in FinTech") -> None:
-    print(f"--- Launching Orchestrator for topic: {topic} ---")
+def run_orchestrator(
+    topic: str = "AI in FinTech",
+    on_log: Optional[Callable[[str], None]] = None,
+    on_candidates_found: Optional[Callable[[List[dict]], None]] = None,
+    on_candidate_status: Optional[Callable[[int, str], None]] = None,
+    simulate_timing: bool = False,
+) -> None:
+    def log(message: str) -> None:
+        print(message)
+        if on_log:
+            try:
+                on_log(message)
+            except Exception:
+                pass
+
+    log(f"--- Launching Orchestrator for topic: {topic} ---")
 
     # Offline simulation mode to avoid external LLM calls
     dummy_run = os.getenv("DUMMY_RUN", "0") == "1" or not os.getenv("OPENAI_API_KEY")
     if dummy_run:
-        print("Running in DUMMY mode (no external LLM calls).\n")
-        print("[SourcingAgent] Found 3 potential candidates:")
+        log("Running in DUMMY mode (no external LLM calls).")
+        if simulate_timing:
+            time.sleep(1)
+        log("[SourcingAgent] Starting search...")
+        if simulate_timing:
+            time.sleep(1.2)
         mock_results = [
-            {"name": "Dr. Evelyn Reed", "email": "e.reed@example.com", "expertise": "Quantum Computing"},
-            {"name": "Marco Jin", "email": "m.jin@example.com", "expertise": "AI in FinTech"},
-            {"name": "Anya Sharma", "email": "a.sharma@example.com", "expertise": "Decentralized Science"},
+            {"name": "Dr. Evelyn Reed", "email": "e.reed@example.com", "expertise": "Quantum Computing", "status": "Sourced"},
+            {"name": "Marco Jin", "email": "m.jin@example.com", "expertise": "AI in FinTech", "status": "Sourced"},
+            {"name": "Anya Sharma", "email": "a.sharma@example.com", "expertise": "Decentralized Science", "status": "Sourced"},
         ]
-        for idx, c in enumerate(mock_results, 1):
-            print(f"  {idx}. {c['name']} - {c['expertise']} ({c['email']})")
-        print("\n[SchedulingAgent] Contacting candidates and scheduling intro meetings...")
-        for c in mock_results:
-            print(f"  Email sent to {c['name']} - meeting scheduled.")
-        print("\n--- Crew Run Complete (Simulated) ---")
+        log("[SourcingAgent] Found 3 potential candidates.")
+        if on_candidates_found:
+            try:
+                on_candidates_found(mock_results)
+            except Exception:
+                pass
+        if simulate_timing:
+            time.sleep(0.6)
+        log("[SourcingAgent] Task complete. Passing results to SchedulingAgent.")
+        if simulate_timing:
+            time.sleep(1.0)
+        log("[SchedulingAgent] Initializing outreach sequence...")
+        if simulate_timing:
+            time.sleep(1.2)
+        # Outreach updates
+        for idx, candidate in enumerate(mock_results):
+            log(f"[SchedulingAgent] Sending outreach email to {candidate['name']}.")
+            if on_candidate_status:
+                try:
+                    on_candidate_status(idx, "Contacted")
+                except Exception:
+                    pass
+            if simulate_timing:
+                time.sleep(0.9)
+        # Acceptance
+        log("[SchedulingAgent] Received positive reply from Dr. Evelyn Reed. Scheduling meeting.")
+        if on_candidate_status:
+            try:
+                on_candidate_status(0, "Accepted")
+            except Exception:
+                pass
+        if simulate_timing:
+            time.sleep(0.8)
+        log("[SchedulingAgent] Task complete.")
+        if simulate_timing:
+            time.sleep(0.4)
+        log("--- Crew Run Complete (Simulated) ---")
         return
 
     # Import CrewAI-dependent modules only when needed
@@ -53,8 +104,8 @@ def run_orchestrator(topic: str = "AI in FinTech") -> None:
     )
 
     result = crew.kickoff()
-    print("\n--- Crew Run Complete ---")
-    print(result)
+    log("\n--- Crew Run Complete ---")
+    log(str(result))
 
 
 if __name__ == "__main__":

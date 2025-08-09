@@ -3,3 +3,5 @@ crewai_tools
 python-dotenv
 google-api-python-client
 google-auth-oauthlib
+fastapi
+uvicorn

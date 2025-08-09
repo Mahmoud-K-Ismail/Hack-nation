@@ -27,3 +27,5 @@ class OrchestratorTasks:
             agent=agent,
             context=[context],
         )
+
+    # In the future, we can add streaming callbacks here when CrewAI exposes hooks.

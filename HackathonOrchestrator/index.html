@@ -33,6 +33,8 @@
         <label for="sourcing-topic" class="block text-sm font-medium text-gray-300 mb-2">Sourcing Topic</label>
         <div class="flex flex-col sm:flex-row gap-4">
           <input type="text" id="sourcing-topic" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 'AI in FinTech' or 'Decentralized Science'" />
+          <input type="file" id="contacts-file" accept=".csv" class="hidden" />
+          <button id="upload-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-md transition">Upload CSV</button>
           <button id="launch-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">🚀 Launch Sourcing Agent</button>
         </div>
       </div>
@@ -77,12 +79,59 @@
           </div>
         </div>
       </div>
+
+      <!-- Business Plan & Goals -->
+      <section class="mt-12 bg-gray-800 p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold text-white mb-4">Business Plan & Goals</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <h3 class="text-lg font-semibold text-white">Problem</h3>
+            <p class="text-gray-400 mt-2">Event teams spend weeks sourcing, emailing, and scheduling high-quality speakers and jurors. Manual workflows lead to low hit rates and missed deadlines.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-white">Solution</h3>
+            <p class="text-gray-400 mt-2">An AI-driven orchestrator that identifies experts, personalizes outreach, and books meetings automatically—integrated with Gmail and Google Calendar.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-white">Outcomes</h3>
+            <ul class="text-gray-400 mt-2 list-disc list-inside space-y-1">
+              <li>Reduce sourcing time by 80%+</li>
+              <li>Increase response rates via personalized outreach</li>
+              <li>Hands-free scheduling with conflict-aware calendars</li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          <div>
+            <h3 class="text-lg font-semibold text-white">Target Users</h3>
+            <ul class="text-gray-400 mt-2 list-disc list-inside space-y-1">
+              <li>Hackathon organizers</li>
+              <li>Conference teams</li>
+              <li>University clubs</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-white">Pricing</h3>
+            <p class="text-gray-400 mt-2">Tiered SaaS: Starter (per-event), Pro (monthly), Enterprise (SSO, audit logs, SLAs).</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-white">Roadmap</h3>
+            <ul class="text-gray-400 mt-2 list-disc list-inside space-y-1">
+              <li>CRM integrations (HubSpot, Salesforce)</li>
+              <li>Multi-channel outreach (LinkedIn, email)</li>
+              <li>Auto follow-ups and A/B testing</li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
   <script>
     // --- DOM Elements ---
     const launchBtn = document.getElementById('launch-btn');
+    const uploadBtn = document.getElementById('upload-btn');
+    const contactsInput = document.getElementById('contacts-file');
     const topicInput = document.getElementById('sourcing-topic');
     const logPanel = document.getElementById('log-panel');
     const candidateList = document.getElementById('candidate-list');
@@ -90,8 +139,15 @@
     const kpiContacted = document.getElementById('kpi-contacted').querySelector('p:first-child');
     const kpiAccepted = document.getElementById('kpi-accepted').querySelector('p:first-child');
 
+    // --- Config ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiPort = urlParams.get('api') || '8001';
+    const apiBase = `http://127.0.0.1:${apiPort}`;
+
     // --- State & Mock Data ---
     let candidates = [];
+    let uploadedCsvCandidates = [];
+    let logEventSource = null;
 
     // --- Core Functions ---
     function addLog(message, type = 'info') {
@@ -131,34 +187,55 @@
       });
     }
 
-    function simulateAgentWorkflow() {
-      const mockCandidates = [
-        { name: 'Dr. Evelyn Reed', email: 'e.reed@example.com', expertise: 'Quantum Computing', status: 'Sourced' },
-        { name: 'Marco Jin', email: 'm.jin@example.com', expertise: 'AI in FinTech', status: 'Sourced' },
-        { name: 'Anya Sharma', email: 'a.sharma@example.com', expertise: 'Decentralized Science', status: 'Sourced' },
-      ];
+    function startBackendRun(topic) {
+      if (logEventSource) {
+        logEventSource.close();
+        logEventSource = null;
+      }
 
-      const steps = [
-        { delay: 1000, log: '▶️ SourcingAgent: Starting search...', action: () => {} },
-        { delay: 1500, log: 'SourcingAgent: Found 3 potential candidates.', action: () => { candidates = mockCandidates; updateDashboard(); } },
-        { delay: 500, log: '✅ SourcingAgent: Task complete. Passing results to SchedulingAgent.', action: () => {} },
-        { delay: 1000, log: '▶️ SchedulingAgent: Initializing outreach sequence...', action: () => {} },
-        { delay: 1500, log: 'SchedulingAgent: Sending outreach email to Dr. Evelyn Reed.', action: () => { candidates[0].status = 'Contacted'; updateDashboard(); } },
-        { delay: 1000, log: 'SchedulingAgent: Sending outreach email to Marco Jin.', action: () => { candidates[1].status = 'Contacted'; updateDashboard(); } },
-        { delay: 1200, log: 'SchedulingAgent: Sending outreach email to Anya Sharma.', action: () => { candidates[2].status = 'Contacted'; updateDashboard(); } },
-        { delay: 2000, log: 'SchedulingAgent: Received positive reply from Dr. Evelyn Reed. Scheduling meeting.', action: () => { candidates[0].status = 'Accepted'; updateDashboard(); } },
-        { delay: 1000, log: '✅ SchedulingAgent: Task complete.', action: () => {} },
-        { delay: 500, log: '🎉 Orchestration Complete.', type: 'success', action: () => { launchBtn.disabled = false; launchBtn.textContent = '🚀 Launch Sourcing Agent'; } },
-      ];
+      // Start run
+      // New demo-first flow: call demo/run-topic which reads contacts.csv and simulates outreach
+      fetch(`${apiBase}/demo/run-topic?topic=${encodeURIComponent(topic)}`, { method: 'GET' })
+        .then(r => r.json())
+        .then(() => addLog('Run started...', 'info'))
+        .catch(() => addLog('Failed to start run', 'info'));
 
-      let cumulativeDelay = 0;
-      steps.forEach(step => {
-        cumulativeDelay += step.delay;
-        setTimeout(() => {
-          addLog(step.log, step.type || 'agent');
-          step.action();
-        }, cumulativeDelay);
+      // Connect to logs SSE
+      logEventSource = new EventSource(`${apiBase}/stream`);
+      logEventSource.addEventListener('log', (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          addLog(data.message, 'agent');
+        } catch (_) {}
       });
+      logEventSource.addEventListener('candidates', (ev) => {
+        try {
+          candidates = JSON.parse(ev.data);
+          updateDashboard();
+        } catch (_) {}
+      });
+      logEventSource.addEventListener('candidate_status', (ev) => {
+        try {
+          const payload = JSON.parse(ev.data);
+          const { index, status, email } = payload;
+          if (typeof index === 'number' && candidates[index]) {
+            candidates[index].status = status;
+          } else if (email) {
+            const c = candidates.find(c => c.email === email);
+            if (c) c.status = status;
+          }
+          updateDashboard();
+        } catch (_) {}
+      });
+      logEventSource.addEventListener('done', () => {
+        addLog('Orchestration Complete.', 'success');
+        launchBtn.disabled = false;
+        launchBtn.textContent = '🚀 Launch Sourcing Agent';
+        if (logEventSource) logEventSource.close();
+      });
+      logEventSource.onerror = () => {
+        addLog('Stream disconnected.', 'info');
+      };
     }
 
     // --- Event Listeners ---
@@ -177,10 +254,32 @@
       updateDashboard();
 
       addLog(`Initializing agents for topic: "${topic}"`, 'info');
+      startBackendRun(topic);
+    });
 
-      // In a real app, you would make a fetch call here.
-      // For the demo, we simulate the workflow.
-      simulateAgentWorkflow();
+    // CSV upload handlers
+    uploadBtn.addEventListener('click', () => contactsInput.click());
+    contactsInput.addEventListener('change', async () => {
+      const file = contactsInput.files[0];
+      if (!file) return;
+      const text = await file.text();
+      uploadedCsvCandidates = [];
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const [header, ...rows] = lines;
+      const cols = header.split(',').map(s => s.trim().toLowerCase());
+      const idxName = cols.indexOf('name');
+      const idxEmail = cols.indexOf('email');
+      const idxExpertise = cols.indexOf('expertise');
+      rows.forEach(r => {
+        const parts = r.split(',');
+        const name = (parts[idxName] || '').trim();
+        const email = (parts[idxEmail] || '').trim();
+        const expertise = (parts[idxExpertise] || '').trim();
+        if (email) uploadedCsvCandidates.push({ name, email, expertise, status: 'Sourced' });
+      });
+      addLog(`Loaded ${uploadedCsvCandidates.length} contacts from CSV.`, 'info');
+      candidates = uploadedCsvCandidates.slice();
+      updateDashboard();
     });
 
     // Initial state

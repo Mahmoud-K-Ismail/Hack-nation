@@ -32,3 +32,7 @@ class OrchestratorAgents:
             verbose=True,
             tools=[SendEmailTool(), ScheduleMeetingTool()],
         )
+
+    # Additional utility for future extensions
+    def all_tools(self):
+        return [SearchForExpertsTool(), SendEmailTool(), ScheduleMeetingTool()]
