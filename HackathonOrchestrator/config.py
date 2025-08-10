@@ -46,6 +46,21 @@ WEB_INDEX = WEB_DIR / "index.html"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 DUMMY_RUN = os.getenv("DUMMY_RUN", "1")
 
+# Discord Bot configuration
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
+
+# Database configuration
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/hackathon_orchestrator")
+
+# JWT configuration
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-this")
+PLATFORM_API_TOKEN = os.getenv("PLATFORM_API_TOKEN", "")
+
+# Webhook configuration
+DEFAULT_WEBHOOK_SECRET = os.getenv("DEFAULT_WEBHOOK_SECRET", "")
+
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

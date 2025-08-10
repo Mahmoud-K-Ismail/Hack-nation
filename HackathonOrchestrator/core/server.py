@@ -18,10 +18,24 @@ if str(current_dir) not in sys.path:
 from core.main import run_orchestrator
 from services.speaker_finder_service import speaker_finder_service
 
+# Discord Bot imports
+try:
+    from discord_bot.config_api import router as bot_config_router
+    from discord_bot.faq_sync import faq_sync_service
+    from discord_bot.schemas import FAQSyncRequest
+    DISCORD_BOT_AVAILABLE = True
+except ImportError:
+    DISCORD_BOT_AVAILABLE = False
+    print("Discord bot modules not available - some endpoints will be disabled")
+
 
 load_dotenv()
 
-app = FastAPI(title="Hackathon Orchestrator API")
+app = FastAPI(
+    title="Hackathon Orchestrator API",
+    description="Comprehensive platform for managing hackathon operations including candidate sourcing, speaker finding, and Discord bot integration",
+    version="2.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,6 +44,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Discord bot API router if available
+if DISCORD_BOT_AVAILABLE:
+    app.include_router(bot_config_router)
+    print("Discord bot API endpoints enabled")
 
 
 class EventBus:
@@ -736,4 +755,172 @@ async def speakers_health() -> dict:
         return {"ok": True, "service": "speaker_finder", "status": "healthy"}
     except Exception as e:
         return {"ok": False, "service": "speaker_finder", "status": "error", "error": str(e)}
+
+
+# === Discord Bot Endpoints ===
+
+@app.post("/hackathon/{hackathon_id}/faq")
+async def get_hackathon_faqs(hackathon_id: str) -> dict:
+    """Get FAQs for a specific hackathon - used by Discord bot"""
+    try:
+        # Mock FAQ data for now - in production this would fetch from database
+        mock_faqs = [
+            {
+                "id": "1",
+                "question": "What's the WiFi password?",
+                "answer": "The WiFi network is 'HackathonGuest' with password 'hack2024'. If you're having trouble connecting, please ask an organizer for help.",
+                "category": "venue",
+                "tags": ["wifi", "internet", "password"]
+            },
+            {
+                "id": "2", 
+                "question": "When is food served?",
+                "answer": "Meals are served at:\n• Breakfast: 8:00 AM\n• Lunch: 12:30 PM\n• Dinner: 6:30 PM\n• Snacks available 24/7 in the main hall.",
+                "category": "food",
+                "tags": ["food", "meals", "schedule"]
+            },
+            {
+                "id": "3",
+                "question": "How do I submit my project?",
+                "answer": "Project submissions are due by 11:59 PM on Sunday. Submit via the hackathon platform at [platform-url]. Include your team name, project description, and GitHub repository link.",
+                "category": "submission",
+                "tags": ["submission", "project", "deadline"]
+            },
+            {
+                "id": "4",
+                "question": "What's the schedule?",
+                "answer": "Check the complete schedule on our platform or the #announcements channel. Key events:\n• Opening Ceremony: Friday 6 PM\n• Hacking Begins: Friday 8 PM\n• Final Presentations: Sunday 2 PM",
+                "category": "schedule",
+                "tags": ["schedule", "events", "timeline"]
+            }
+        ]
+        
+        return {
+            "ok": True,
+            "hackathon_id": hackathon_id,
+            "faqs": mock_faqs,
+            "count": len(mock_faqs)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching FAQs: {str(e)}")
+
+
+@app.post("/hackathon/{hackathon_id}/schedule")
+async def get_hackathon_schedule(hackathon_id: str) -> dict:
+    """Get schedule for a specific hackathon - used by Discord bot"""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Mock schedule data
+        base_time = datetime.utcnow()
+        mock_events = [
+            {
+                "id": "1",
+                "title": "Opening Ceremony",
+                "description": "Welcome and introduction to the hackathon",
+                "start_time": (base_time + timedelta(hours=2)).isoformat(),
+                "end_time": (base_time + timedelta(hours=3)).isoformat(),
+                "location": "Main Auditorium",
+                "type": "ceremony"
+            },
+            {
+                "id": "2",
+                "title": "Team Formation",
+                "description": "Find your team and start brainstorming",
+                "start_time": (base_time + timedelta(hours=3)).isoformat(),
+                "end_time": (base_time + timedelta(hours=4)).isoformat(),
+                "location": "Main Hall",
+                "type": "networking"
+            },
+            {
+                "id": "3",
+                "title": "Hacking Begins",
+                "description": "Start building your amazing projects!",
+                "start_time": (base_time + timedelta(hours=4)).isoformat(),
+                "end_time": (base_time + timedelta(hours=28)).isoformat(),
+                "location": "Everywhere",
+                "type": "hacking"
+            },
+            {
+                "id": "4",
+                "title": "Final Presentations",
+                "description": "Present your projects to the judges",
+                "start_time": (base_time + timedelta(hours=28)).isoformat(),
+                "end_time": (base_time + timedelta(hours=32)).isoformat(),
+                "location": "Main Auditorium",
+                "type": "presentation"
+            }
+        ]
+        
+        return {
+            "ok": True,
+            "hackathon_id": hackathon_id,
+            "events": mock_events,
+            "count": len(mock_events)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching schedule: {str(e)}")
+
+
+@app.post("/discord/faq/sync")
+async def sync_discord_faqs(payload: dict = Body(...)) -> dict:
+    """Manually sync FAQs for Discord bot"""
+    try:
+        if not DISCORD_BOT_AVAILABLE:
+            raise HTTPException(status_code=501, detail="Discord bot service not available")
+        
+        sync_request = FAQSyncRequest(**payload)
+        result = await faq_sync_service.manual_faq_sync(sync_request)
+        
+        return result.dict()
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error syncing FAQs: {str(e)}")
+
+
+@app.post("/discord/events/webhook")
+async def discord_webhook_receiver(payload: dict = Body(...)) -> dict:
+    """Receive webhook events from Discord bot"""
+    try:
+        # Log the event for now - in production this would be processed
+        event_type = payload.get("event", "unknown")
+        hackathon_id = payload.get("hackathon_id", "unknown")
+        
+        # Emit to SSE for real-time updates
+        await bus.emit("discord_event", {
+            "type": event_type,
+            "hackathon_id": hackathon_id,
+            "data": payload
+        })
+        
+        return {"ok": True, "event": event_type, "processed": True}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing webhook: {str(e)}")
+
+
+@app.get("/discord/health")
+async def discord_health() -> dict:
+    """Health check for Discord bot service"""
+    if not DISCORD_BOT_AVAILABLE:
+        return {"ok": False, "service": "discord_bot", "status": "unavailable", "reason": "Module not imported"}
+    
+    try:
+        from discord_bot.database import DatabaseManager
+        
+        db_healthy = DatabaseManager.health_check()
+        stats = DatabaseManager.get_stats()
+        
+        return {
+            "ok": True,
+            "service": "discord_bot",
+            "status": "healthy" if db_healthy else "degraded",
+            "database_healthy": db_healthy,
+            "stats": stats
+        }
+        
+    except Exception as e:
+        return {"ok": False, "service": "discord_bot", "status": "error", "error": str(e)}
 

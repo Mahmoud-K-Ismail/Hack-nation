@@ -36,12 +36,22 @@ HackathonOrchestrator/
 - Live dashboard with SSE updates
 - Outreach simulation and automation
 
-### **🎤 Speaker & Jury Finder** *(NEW!)*
+### **🎤 Speaker & Jury Finder**
 - Topic-based speaker search (AI in FinTech, Cybersecurity, Blockchain, Data Science)
 - Google Sheets integration for professional output
 - Web scraping with fallback to comprehensive demo data
 - Includes NYU contacts: Omar Shehab & Mahmoud Kassem
 - Professional spreadsheet formatting with tracking columns
+
+### **🤖 Discord Bot Integration** *(NEW!)*
+- AI-powered FAQ auto-replies with semantic search
+- Real-time message monitoring and flood detection
+- Automatic issue escalation to organizers
+- Scheduled announcements from platform events
+- Sentiment analysis and urgency detection
+- Thread auto-creation and message pinning
+- Customizable bot personality and welcome messages
+- Webhook integration for platform communication
 
 ### **Web Interface**
 - Real-time dashboard with live updates
@@ -53,7 +63,10 @@ HackathonOrchestrator/
 
 ### **Prerequisites**
 - Python 3.10+
+- PostgreSQL with pgvector extension (for Discord bot)
 - Google Cloud Project (for speaker finder)
+- Discord Developer Account (for Discord bot)
+- OpenAI API Key (optional, for AI features)
 
 ### **1. Setup Environment**
 ```bash
@@ -132,8 +145,21 @@ Open your browser to: `http://127.0.0.1:8080/web/index.html?api=8001`
 ### **Environment Variables**
 Create `.env` file:
 ```env
+# Core Configuration
 OPENAI_API_KEY=your_openai_key_here
 DUMMY_RUN=0
+
+# Discord Bot Configuration
+DISCORD_BOT_TOKEN=your_discord_bot_token
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_CLIENT_SECRET=your_discord_client_secret
+
+# Database Configuration
+DATABASE_URL=postgresql://postgres:password@localhost:5432/hackathon_orchestrator
+
+# Security
+JWT_SECRET_KEY=your-secure-jwt-secret
+DEFAULT_WEBHOOK_SECRET=your-webhook-secret
 ```
 
 ## 🧪 **Testing**
@@ -144,6 +170,12 @@ curl -s http://127.0.0.1:8001/health
 # Expected: {"ok": true}
 ```
 
+### **Discord Bot Health Check**
+```bash
+curl -s http://127.0.0.1:8001/discord/health
+# Expected: {"ok": true, "service": "discord_bot", "status": "healthy"}
+```
+
 ### **Speaker Finder Test**
 ```bash
 curl -X POST "http://127.0.0.1:8001/speakers/find" \
@@ -151,13 +183,37 @@ curl -X POST "http://127.0.0.1:8001/speakers/find" \
   -d '{"topic":"cybersecurity","max_results":5}'
 ```
 
+### **Discord Bot Configuration Test**
+```bash
+curl -X POST "http://127.0.0.1:8001/api/v1/bot/configure" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer demo-token" \
+  -d '{"hackathon_id":"test-hack","discord":{"guild_id":"123","installation_id":"test"},"escalation":{"enabled":true,"channel_id":"456"},"logging":{"send_to_platform_webhook":true,"platform_webhook_url":"https://example.com/webhook"}}'
+```
+
 ### **End-to-End Test**
 1. Start both backend and frontend
 2. Open web interface
 3. Test candidate sourcing flow
 4. Test speaker finder functionality
+5. Configure and test Discord bot integration
 
 ## 🛠️ **Development**
+
+### **Discord Bot Setup**
+For detailed Discord bot setup instructions, see [DISCORD_BOT_SETUP.md](DISCORD_BOT_SETUP.md)
+
+Quick start:
+```bash
+# Initialize Discord bot database
+python start_discord_bot.py init
+
+# Start Discord bot service
+python start_discord_bot.py start
+
+# Check Discord bot health
+python start_discord_bot.py status
+```
 
 ### **Adding New Services**
 1. Create new service in `services/` directory
@@ -168,6 +224,7 @@ curl -X POST "http://127.0.0.1:8001/speakers/find" \
 ### **Code Organization**
 - **Core Logic**: `core/` - Main application, server, agents
 - **Services**: `services/` - External integrations (Google Sheets, APIs)
+- **Discord Bot**: `discord_bot/` - Discord bot service, AI processing, database models
 - **Web Interface**: `web/` - Frontend HTML/CSS/JS
 - **Documentation**: `docs/` - Logs, guides, setup instructions
 
