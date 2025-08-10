@@ -342,6 +342,33 @@
           spreadsheetLink.href = data.spreadsheet_url;
           speakerResult.classList.remove('hidden');
           addLog(`Found ${maxResults} speakers for "${topic}" and created Google Sheets`, 'success');
+          
+          // Also populate the candidate pipeline with found speakers
+          if (data.speakers && data.speakers.length > 0) {
+            candidates = data.speakers.map(speaker => ({
+              name: speaker.name || 'Unknown',
+              email: speaker.email || '',
+              expertise: speaker.expertise || topic,
+              status: 'Sourced'
+            }));
+            
+            addLog(`Loaded ${candidates.length} candidates into pipeline`, 'success');
+            updateDashboard();
+          } else {
+            // Create mock candidates for demo if no speakers data returned
+            const mockCandidates = [];
+            for (let i = 1; i <= Math.min(maxResults, 5); i++) {
+              mockCandidates.push({
+                name: `${topic} Expert ${i}`,
+                email: `expert${i}@${topic.toLowerCase().replace(/\s+/g, '')}.com`,
+                expertise: topic,
+                status: 'Sourced'
+              });
+            }
+            candidates = mockCandidates;
+            addLog(`Created ${candidates.length} demo candidates for "${topic}"`, 'success');
+            updateDashboard();
+          }
         } else {
           throw new Error(data.detail || 'Failed to find speakers');
         }

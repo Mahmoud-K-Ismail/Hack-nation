@@ -702,7 +702,13 @@ async def find_speakers(payload: dict = Body(...)) -> dict:
         if not topic:
             raise HTTPException(status_code=400, detail="Topic is required")
         
-        # Use the speaker finder service
+        # Get speakers data first
+        speakers = speaker_finder_service.search_speakers(topic, max_results)
+        
+        if not speakers:
+            raise HTTPException(status_code=404, detail="No speakers found for this topic")
+        
+        # Create spreadsheet
         spreadsheet_url = speaker_finder_service.find_and_create_sheet(topic, max_results)
         
         if spreadsheet_url:
@@ -711,7 +717,9 @@ async def find_speakers(payload: dict = Body(...)) -> dict:
                 "spreadsheet_url": spreadsheet_url,
                 "topic": topic,
                 "max_results": max_results,
-                "message": f"Successfully created spreadsheet with speakers for '{topic}'"
+                "message": f"Successfully created spreadsheet with speakers for '{topic}'",
+                "speakers": speakers,  # Include speaker data for frontend
+                "count": len(speakers)
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to create spreadsheet")
