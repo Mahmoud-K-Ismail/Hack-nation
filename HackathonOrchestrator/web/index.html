@@ -22,6 +22,12 @@
 </head>
 <body class="bg-gray-900 text-gray-200 antialiased">
   <div class="container mx-auto p-4 md:p-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-white">Hackathon Orchestrator Dashboard</h1>
+      <div class="flex items-center gap-3">
+        <a id="bot-link" href="bot.html" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">🤖 Discord Bot</a>
+      </div>
+    </div>
 
 
     <!-- Main Content -->
@@ -119,146 +125,11 @@
         </div>
       </div>
 
-      <!-- Discord Bot Configuration Section -->
+      <!-- Discord Bot moved to dedicated page -->
       <section class="mt-12 bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-semibold text-white mb-4">🤖 Discord Bot Configuration</h2>
-        <p class="text-gray-400 mb-6">Configure your hackathon Discord bot to handle FAQs, monitor chat, and escalate issues automatically.</p>
-        
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Basic Configuration -->
-          <div class="bg-gray-700 p-4 rounded-lg">
-            <h3 class="text-lg font-semibold text-white mb-4">Basic Configuration</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Hackathon ID</label>
-                <input type="text" id="discord-hackathon-id" class="w-full bg-gray-600 border border-gray-500 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="hack-2025-nyuad" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Discord Server ID</label>
-                <input type="text" id="discord-guild-id" class="w-full bg-gray-600 border border-gray-500 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="123456789012345678" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Installation ID</label>
-                <input type="text" id="discord-installation-id" class="w-full bg-gray-600 border border-gray-500 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="install_abc123" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Escalation Channel ID</label>
-                <input type="text" id="discord-escalation-channel" class="w-full bg-gray-600 border border-gray-500 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="987654321012345678" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Features Configuration -->
-          <div class="bg-gray-700 p-4 rounded-lg">
-            <h3 class="text-lg font-semibold text-white mb-4">Bot Features</h3>
-            <div class="space-y-3">
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-faq-autoreply" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">FAQ Auto-replies</span>
-              </label>
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-flood-detection" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">Flood Detection</span>
-              </label>
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-escalation" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">Issue Escalation</span>
-              </label>
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-scheduled-announcements" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">Scheduled Announcements</span>
-              </label>
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-thread-autocreate" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">Auto-create Threads</span>
-              </label>
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-sentiment-detection" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">Sentiment Detection</span>
-              </label>
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-pin-auto-answers" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">Pin Auto-answers</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Advanced Settings -->
-          <div class="bg-gray-700 p-4 rounded-lg">
-            <h3 class="text-lg font-semibold text-white mb-4">Advanced Settings</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Bot Personality</label>
-                <select id="discord-personality" class="w-full bg-gray-600 border border-gray-500 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                  <option value="casual">Casual</option>
-                  <option value="formal">Formal</option>
-                  <option value="fun">Fun</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Welcome Message</label>
-                <textarea id="discord-welcome-message" class="w-full bg-gray-600 border border-gray-500 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="3" placeholder="Welcome to our hackathon! I'm here to help with questions and support."></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Escalation Threshold</label>
-                <input type="range" id="discord-escalation-threshold" min="0" max="1" step="0.1" value="0.7" class="w-full" />
-                <div class="flex justify-between text-xs text-gray-400">
-                  <span>Low (0.0)</span>
-                  <span id="threshold-value">0.7</span>
-                  <span>High (1.0)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Webhook Configuration -->
-          <div class="bg-gray-700 p-4 rounded-lg">
-            <h3 class="text-lg font-semibold text-white mb-4">Webhook Settings</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Platform Webhook URL</label>
-                <input type="url" id="discord-webhook-url" class="w-full bg-gray-600 border border-gray-500 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="https://platform.example/api/v1/bot/events" />
-              </div>
-              <label class="flex items-center">
-                <input type="checkbox" id="feature-webhook-enabled" class="form-checkbox h-5 w-5 text-blue-600" checked />
-                <span class="ml-3 text-gray-300">Send events to platform webhook</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="mt-6 flex flex-wrap gap-4">
-          <button id="configure-discord-bot-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">
-            ⚙️ Configure Bot
-          </button>
-          <button id="test-discord-config-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">
-            🧪 Test Configuration
-          </button>
-          <button id="sync-discord-faqs-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">
-            🔄 Sync FAQs
-          </button>
-          <button id="discord-health-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">
-            ❤️ Check Bot Health
-          </button>
-        </div>
-
-        <!-- Results Panel -->
-        <div id="discord-results" class="mt-6 hidden">
-          <div class="bg-gray-900 border border-gray-600 rounded-lg p-4">
-            <h4 class="text-lg font-semibold text-white mb-2">Configuration Result</h4>
-            <pre id="discord-results-content" class="text-green-400 bg-black p-3 rounded text-sm overflow-x-auto"></pre>
-          </div>
-        </div>
-
-        <!-- Discord Events Stream -->
-        <div id="discord-events-panel" class="mt-6">
-          <h4 class="text-lg font-semibold text-white mb-4">Discord Bot Events</h4>
-          <div id="discord-events-log" class="bg-gray-900 p-4 rounded-lg h-48 overflow-y-auto font-mono text-sm">
-            <p class="text-gray-500">No Discord events yet...</p>
-          </div>
-        </div>
+        <h2 class="text-2xl font-semibold text-white mb-4">🤖 Discord Bot</h2>
+        <p class="text-gray-400 mb-6">The Discord bot configuration has moved to its own page.</p>
+        <a id="open-bot-page" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md" href="#">Open Discord Bot Page →</a>
       </section>
 
       <!-- Business Plan & Goals -->
@@ -330,6 +201,9 @@
     const urlParams = new URLSearchParams(window.location.search);
     const apiPort = urlParams.get('api') || '8001';
     const apiBase = `http://127.0.0.1:${apiPort}`;
+    // Update nav link to preserve api param
+    const botLinkEl = document.getElementById('bot-link');
+    if (botLinkEl) botLinkEl.href = `bot.html?api=${apiPort}`;
     
     // Debug: Log the API base URL
     console.log('API Base URL:', apiBase);
@@ -823,7 +697,7 @@ Hackathon Team`
       }
     }
 
-    // --- Discord Bot Functions ---
+    // --- Discord Bot navigation ---
 
     // Discord bot configuration elements
     const discordResults = document.getElementById('discord-results');
@@ -1115,11 +989,14 @@ Hackathon Team`
     document.getElementById('send-bulk-emails-btn').addEventListener('click', sendBulkEmails);
     document.getElementById('check-bulk-responses-btn').addEventListener('click', checkBulkResponses);
 
-    // Discord bot handlers
-    document.getElementById('configure-discord-bot-btn').addEventListener('click', configureDiscordBot);
-    document.getElementById('test-discord-config-btn').addEventListener('click', testDiscordConfig);
-    document.getElementById('sync-discord-faqs-btn').addEventListener('click', syncDiscordFAQs);
-    document.getElementById('discord-health-btn').addEventListener('click', checkDiscordHealth);
+    // Open dedicated bot page button
+    const openBotBtn = document.getElementById('open-bot-page');
+    if (openBotBtn) {
+      openBotBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = `bot.html?api=${apiPort}`;
+      });
+    }
 
     // Initial state
     updateDashboard();

@@ -200,8 +200,10 @@ curl -X POST "http://127.0.0.1:8001/api/v1/bot/configure" \
 
 ## 🛠️ **Development**
 
-### **Discord Bot Setup**
-For detailed Discord bot setup instructions, see [DISCORD_BOT_SETUP.md](DISCORD_BOT_SETUP.md)
+### **Discord Bot Setup & Testing**
+For full setup, see [DISCORD_BOT_SETUP.md](DISCORD_BOT_SETUP.md)
+
+For testing instructions, see the concise guide [DISCORD_TESTING.md](DISCORD_TESTING.md)
 
 Quick start:
 ```bash

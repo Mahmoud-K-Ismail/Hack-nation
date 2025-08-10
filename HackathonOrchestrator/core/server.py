@@ -763,7 +763,35 @@ async def speakers_health() -> dict:
 async def get_hackathon_faqs(hackathon_id: str) -> dict:
     """Get FAQs for a specific hackathon - used by Discord bot"""
     try:
-        # Mock FAQ data for now - in production this would fetch from database
+        # Try to load synthetic test data, fall back to basic mock data
+        try:
+            import json
+            with open("test_data/hackathon_faq.json", "r") as f:
+                faq_data = json.load(f)
+                if faq_data.get("hackathon_id") == hackathon_id or hackathon_id == "ai-revolution-2024":
+                    # Convert test data format to expected API format
+                    formatted_faqs = []
+                    for faq_item in faq_data.get("faq", []):
+                        formatted_faqs.append({
+                            "id": faq_item["id"],
+                            "question": faq_item["question"],
+                            "answer": faq_item["answer"],
+                            "category": faq_item["category"],
+                            "tags": faq_item.get("keywords", []),
+                            "priority": faq_item.get("priority", "medium")
+                        })
+                    
+                    return {
+                        "ok": True,
+                        "hackathon_id": hackathon_id,
+                        "faqs": formatted_faqs,
+                        "count": len(formatted_faqs),
+                        "source": "synthetic_test_data"
+                    }
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass  # Fall back to mock data
+        
+        # Fallback mock FAQ data
         mock_faqs = [
             {
                 "id": "1",
@@ -799,7 +827,8 @@ async def get_hackathon_faqs(hackathon_id: str) -> dict:
             "ok": True,
             "hackathon_id": hackathon_id,
             "faqs": mock_faqs,
-            "count": len(mock_faqs)
+            "count": len(mock_faqs),
+            "source": "fallback_mock_data"
         }
         
     except Exception as e:
@@ -810,9 +839,25 @@ async def get_hackathon_faqs(hackathon_id: str) -> dict:
 async def get_hackathon_schedule(hackathon_id: str) -> dict:
     """Get schedule for a specific hackathon - used by Discord bot"""
     try:
+        # Try to load synthetic test data, fall back to basic mock data
+        try:
+            import json
+            with open("test_data/event_schedule.json", "r") as f:
+                schedule_data = json.load(f)
+                if schedule_data.get("hackathon_id") == hackathon_id or hackathon_id == "ai-revolution-2024":
+                    return {
+                        "ok": True,
+                        "hackathon_id": hackathon_id,
+                        "events": schedule_data.get("events", []),
+                        "count": len(schedule_data.get("events", [])),
+                        "timezone": schedule_data.get("timezone", "UTC"),
+                        "source": "synthetic_test_data"
+                    }
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass  # Fall back to mock data
+            
+        # Fallback mock schedule data
         from datetime import datetime, timedelta
-        
-        # Mock schedule data
         base_time = datetime.utcnow()
         mock_events = [
             {
@@ -857,7 +902,8 @@ async def get_hackathon_schedule(hackathon_id: str) -> dict:
             "ok": True,
             "hackathon_id": hackathon_id,
             "events": mock_events,
-            "count": len(mock_events)
+            "count": len(mock_events),
+            "source": "fallback_mock_data"
         }
         
     except Exception as e:
