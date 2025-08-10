@@ -8,3 +8,5 @@ __pycache__/
 .idea/
 .vscode/
 dont_track/
+token_sheet.json
+token.json
