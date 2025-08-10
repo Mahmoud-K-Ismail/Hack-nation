@@ -7,7 +7,16 @@ from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from main import run_orchestrator
+import sys
+from pathlib import Path
+
+# Add the current directory to Python path for imports
+current_dir = Path(__file__).parent.parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
+
+from core.main import run_orchestrator
+from services.speaker_finder_service import speaker_finder_service
 
 
 load_dotenv()
@@ -438,4 +447,42 @@ async def update_candidate_status(email: str, payload: dict = Body(...)) -> dict
         raise HTTPException(status_code=404, detail="candidate not found")
     await bus.emit("candidate_status", {"email": email, "status": status})
     return {"ok": True, "candidate": rec}
+
+
+@app.post("/speakers/find")
+async def find_speakers(payload: dict = Body(...)) -> dict:
+    """Find speakers for a given topic and create Google Sheets."""
+    try:
+        topic = payload.get("topic", "")
+        max_results = payload.get("max_results", 20)
+        
+        if not topic:
+            raise HTTPException(status_code=400, detail="Topic is required")
+        
+        # Use the speaker finder service
+        spreadsheet_url = speaker_finder_service.find_and_create_sheet(topic, max_results)
+        
+        if spreadsheet_url:
+            return {
+                "ok": True,
+                "spreadsheet_url": spreadsheet_url,
+                "topic": topic,
+                "max_results": max_results,
+                "message": f"Successfully created spreadsheet with speakers for '{topic}'"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create spreadsheet")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error finding speakers: {str(e)}")
+
+
+@app.get("/speakers/health")
+async def speakers_health() -> dict:
+    """Health check for speaker finder service."""
+    try:
+        # Test if the service can be initialized
+        return {"ok": True, "service": "speaker_finder", "status": "healthy"}
+    except Exception as e:
+        return {"ok": False, "service": "speaker_finder", "status": "error", "error": str(e)}
 

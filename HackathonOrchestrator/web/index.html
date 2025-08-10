@@ -24,6 +24,14 @@
     <header class="mb-8">
       <h1 class="text-3xl md:text-4xl font-bold text-white">Hackathon Orchestrator</h1>
       <p class="text-lg text-gray-400">AI-powered sourcing and scheduling for speakers & jurors.</p>
+      <div class="mt-2 text-sm text-gray-500">
+        <span>Frontend: <span id="frontend-url" class="text-blue-400"></span></span>
+        <span class="mx-2">|</span>
+        <span>Backend: <span id="backend-url" class="text-green-400"></span></span>
+        <span class="mx-2">|</span>
+        <span>API Port: <input type="number" id="api-port-input" value="8001" min="1000" max="9999" class="w-16 bg-gray-700 border border-gray-600 text-white rounded px-2 py-1 text-xs" /></span>
+        <button id="update-api-btn" class="ml-2 bg-gray-600 hover:bg-gray-500 text-white text-xs px-2 py-1 rounded">Update</button>
+      </div>
     </header>
 
     <!-- Main Content -->
@@ -36,6 +44,32 @@
           <input type="file" id="contacts-file" accept=".csv" class="hidden" />
           <button id="upload-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-md transition">Upload CSV</button>
           <button id="launch-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">🚀 Launch Sourcing Agent</button>
+        </div>
+      </div>
+
+      <!-- Speaker Finder Section -->
+      <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+        <h2 class="text-xl font-semibold text-white mb-4">🎤 Speaker & Jury Finder</h2>
+        <p class="text-gray-400 mb-4">Find speakers and jury members for your hackathon topic and get a Google Sheets link instantly.</p>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <input type="text" id="speaker-topic" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 'AI in FinTech', 'Cybersecurity', 'Blockchain'" />
+          <input type="number" id="speaker-count" class="w-24 bg-gray-700 border border-gray-600 text-white rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="20" min="1" max="50" value="20" />
+          <button id="find-speakers-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">🔍 Find Speakers</button>
+          <button id="test-backend-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 shadow-md">🧪 Test Backend</button>
+          <button id="test-speakers-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 shadow-md">🎤 Test Speakers</button>
+        </div>
+        <div id="speaker-result" class="mt-4 hidden">
+          <div class="bg-green-900 border border-green-700 rounded-lg p-4">
+            <h3 class="text-lg font-semibold text-green-200 mb-2">✅ Speakers Found!</h3>
+            <p id="speaker-message" class="text-green-300 mb-3"></p>
+            <a id="spreadsheet-link" href="#" target="_blank" class="inline-block bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">📊 Open Google Sheets</a>
+          </div>
+        </div>
+        <div id="speaker-error" class="mt-4 hidden">
+          <div class="bg-red-900 border border-red-700 rounded-lg p-4">
+            <h3 class="text-lg font-semibold text-red-200 mb-2">❌ Error</h3>
+            <p id="speaker-error-message" class="text-red-300"></p>
+          </div>
         </div>
       </div>
 
@@ -139,10 +173,32 @@
     const kpiContacted = document.getElementById('kpi-contacted').querySelector('p:first-child');
     const kpiAccepted = document.getElementById('kpi-accepted').querySelector('p:first-child');
 
+    // Speaker Finder Elements
+    const speakerTopicInput = document.getElementById('speaker-topic');
+    const speakerCountInput = document.getElementById('speaker-count');
+    const findSpeakersBtn = document.getElementById('find-speakers-btn');
+    const testBackendBtn = document.getElementById('test-backend-btn');
+    const testSpeakersBtn = document.getElementById('test-speakers-btn');
+    const apiPortInput = document.getElementById('api-port-input');
+    const updateApiBtn = document.getElementById('update-api-btn');
+    const speakerResult = document.getElementById('speaker-result');
+    const speakerError = document.getElementById('speaker-error');
+    const speakerMessage = document.getElementById('speaker-message');
+    const spreadsheetLink = document.getElementById('spreadsheet-link');
+    const speakerErrorMessage = document.getElementById('speaker-error-message');
+
     // --- Config ---
     const urlParams = new URLSearchParams(window.location.search);
     const apiPort = urlParams.get('api') || '8001';
     const apiBase = `http://127.0.0.1:${apiPort}`;
+    
+    // Debug: Log the API base URL
+    console.log('API Base URL:', apiBase);
+    console.log('Frontend URL:', window.location.href);
+    
+    // Update URL indicators
+    document.getElementById('frontend-url').textContent = window.location.href;
+    document.getElementById('backend-url').textContent = apiBase;
 
     // --- State & Mock Data ---
     let candidates = [];
@@ -238,6 +294,134 @@
       };
     }
 
+    // --- Speaker Finder Functions ---
+    async function findSpeakers() {
+      const topic = speakerTopicInput.value.trim();
+      const maxResults = parseInt(speakerCountInput.value) || 20;
+      
+      if (!topic) {
+        alert('Please enter a topic to search for speakers.');
+        return;
+      }
+      
+      // Reset UI
+      speakerResult.classList.add('hidden');
+      speakerError.classList.add('hidden');
+      findSpeakersBtn.disabled = true;
+      findSpeakersBtn.textContent = '🔍 Searching...';
+      
+      console.log('Calling API:', `${apiBase}/speakers/find`);
+      console.log('Request payload:', { topic, max_results: maxResults });
+      
+      try {
+        const response = await fetch(`${apiBase}/speakers/find`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            topic: topic,
+            max_results: maxResults
+          })
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+          speakerMessage.textContent = data.message;
+          spreadsheetLink.href = data.spreadsheet_url;
+          speakerResult.classList.remove('hidden');
+          addLog(`Found ${maxResults} speakers for "${topic}" and created Google Sheets`, 'success');
+        } else {
+          throw new Error(data.detail || 'Failed to find speakers');
+        }
+      } catch (error) {
+        console.error('Error in findSpeakers:', error);
+        speakerErrorMessage.textContent = error.message;
+        speakerError.classList.remove('hidden');
+        addLog(`Error finding speakers: ${error.message}`, 'info');
+      } finally {
+        findSpeakersBtn.disabled = false;
+        findSpeakersBtn.textContent = '🔍 Find Speakers';
+      }
+    }
+    
+    // --- Test Backend Function ---
+    async function testBackend() {
+      testBackendBtn.disabled = true;
+      testBackendBtn.textContent = '🧪 Testing...';
+      
+      try {
+        console.log('Testing backend connection to:', `${apiBase}/health`);
+        const response = await fetch(`${apiBase}/health`);
+        console.log('Health check response:', response.status, response.statusText);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Health check data:', data);
+          addLog('✅ Backend is connected and healthy!', 'success');
+          alert('✅ Backend is connected and healthy!');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      } catch (error) {
+        console.error('Backend test failed:', error);
+        addLog(`❌ Backend test failed: ${error.message}`, 'info');
+        alert(`❌ Backend test failed: ${error.message}`);
+      } finally {
+        testBackendBtn.disabled = false;
+        testBackendBtn.textContent = '🧪 Test Backend';
+      }
+    }
+    
+    // --- Update API Port Function ---
+    function updateApiPort() {
+      const newPort = apiPortInput.value;
+      if (newPort && newPort !== apiPort) {
+        apiPort = newPort;
+        apiBase = `http://127.0.0.1:${apiPort}`;
+        document.getElementById('backend-url').textContent = apiBase;
+        console.log('API port updated to:', apiPort);
+        console.log('New API base:', apiBase);
+        addLog(`API port updated to ${apiPort}`, 'info');
+      }
+    }
+    
+    // --- Test Speakers Endpoint Function ---
+    async function testSpeakersEndpoint() {
+      testSpeakersBtn.disabled = true;
+      testSpeakersBtn.textContent = '🎤 Testing...';
+      
+      try {
+        console.log('Testing speakers endpoint:', `${apiBase}/speakers/health`);
+        const response = await fetch(`${apiBase}/speakers/health`);
+        console.log('Speakers health check response:', response.status, response.statusText);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Speakers health check data:', data);
+          addLog('✅ Speakers endpoint is healthy!', 'success');
+          alert('✅ Speakers endpoint is healthy!');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      } catch (error) {
+        console.error('Speakers endpoint test failed:', error);
+        addLog(`❌ Speakers endpoint test failed: ${error.message}`, 'info');
+        alert(`❌ Speakers endpoint test failed: ${error.message}`);
+      } finally {
+        testSpeakersBtn.disabled = false;
+        testSpeakersBtn.textContent = '🎤 Test Speakers';
+      }
+    }
+
     // --- Event Listeners ---
     launchBtn.addEventListener('click', () => {
       const topic = topicInput.value.trim();
@@ -259,6 +443,19 @@
 
     // CSV upload handlers
     uploadBtn.addEventListener('click', () => contactsInput.click());
+    
+    // Speaker finder handler
+    findSpeakersBtn.addEventListener('click', findSpeakers);
+    
+    // Test backend handler
+    testBackendBtn.addEventListener('click', testBackend);
+    
+    // Update API port handler
+    updateApiBtn.addEventListener('click', updateApiPort);
+    
+    // Test speakers endpoint handler
+    testSpeakersBtn.addEventListener('click', testSpeakersEndpoint);
+    
     contactsInput.addEventListener('change', async () => {
       const file = contactsInput.files[0];
       if (!file) return;
