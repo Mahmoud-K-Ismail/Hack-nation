@@ -2,6 +2,8 @@
 credentials.json
 token_gmail.json
 token_calendar.json
+token.json
+token.pickle
 .venv/
 __pycache__/
 *.pyc
@@ -9,4 +11,3 @@ __pycache__/
 .vscode/
 dont_track/
 token_sheet.json
-token.json

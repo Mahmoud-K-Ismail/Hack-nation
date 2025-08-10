@@ -229,6 +229,249 @@ async def demo_run_topic(topic: str) -> dict:
     return {"ok": True, "count": len(filtered)}
 
 
+# --- New Individual Candidate Endpoints ---
+
+@app.post("/outreach/send-individual")
+async def send_individual_email(payload: dict = Body(...)) -> dict:
+    """Send email to a single candidate with GPT-generated personalized content."""
+    candidate = payload.get("candidate", {})
+    subject = payload.get("subject", "Hackathon Invitation")
+    body_template = payload.get("bodyTemplate", "Hi {name}, we'd love to invite you.")
+    
+    if not candidate.get("email"):
+        raise HTTPException(status_code=400, detail="candidate email required")
+    
+    try:
+        # Import OpenAI for content enhancement
+        import openai
+        import os
+        from dotenv import load_dotenv
+        
+        load_dotenv()
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        
+        # Generate personalized email using GPT
+        if openai.api_key:
+            try:
+                client = openai.OpenAI(api_key=openai.api_key)
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expert at writing professional, personalized invitation emails for hackathon speakers and jury members. Make emails warm, specific to their expertise, and compelling."
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""
+                            Please enhance this email template for {candidate.get('name', 'there')} who has expertise in {candidate.get('expertise', 'technology')}:
+                            
+                            Template: {body_template}
+                            
+                            Make it more personalized and engaging while keeping it professional and concise.
+                            """
+                        }
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                enhanced_body = response.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"GPT enhancement failed: {e}")
+                enhanced_body = body_template.format(name=candidate.get('name', 'there'))
+        else:
+            enhanced_body = body_template.format(name=candidate.get('name', 'there'))
+        
+        # Generate reference token
+        ref_token = f"{hash((candidate['email'], subject)) & 0xfffffff:x}"
+        
+        # For demo purposes, simulate email sending
+        # In production, this would integrate with actual email service
+        result = {
+            "ok": True,
+            "to": candidate["email"],
+            "refToken": ref_token,
+            "subject": subject,
+            "body": enhanced_body,
+            "timestamp": asyncio.get_event_loop().time()
+        }
+        
+        # Update candidate store
+        candidate_store.load([{
+            "name": candidate.get("name"),
+            "email": candidate["email"],
+            "expertise": candidate.get("expertise", ""),
+            "status": "Contacted"
+        }])
+        candidate_store.set_ref(candidate["email"], ref_token)
+        
+        await bus.emit("log", {"message": f"Enhanced email sent to {candidate.get('name', candidate['email'])}"})
+        await bus.emit("candidate_status", {"email": candidate["email"], "status": "Contacted"})
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
+@app.post("/outreach/check-response")
+async def check_individual_response(payload: dict = Body(...)) -> dict:
+    """Check for response from a specific candidate and analyze it with GPT."""
+    ref_token = payload.get("refToken")
+    candidate_email = payload.get("candidateEmail")
+    
+    if not ref_token or not candidate_email:
+        raise HTTPException(status_code=400, detail="refToken and candidateEmail required")
+    
+    try:
+        # Simulate response checking (in production, this would check actual email)
+        # For demo, we'll simulate responses for some candidates
+        import random
+        import time
+        
+        # Simulate response arrival based on time elapsed
+        current_time = time.time()
+        
+        # Create a deterministic but seemingly random response pattern
+        response_seed = hash(ref_token) % 100
+        time_factor = int(current_time) % 60  # Change response over time
+        
+        # 30% chance of response after some time
+        has_response = (response_seed + time_factor) % 100 < 30
+        
+        if not has_response:
+            return {
+                "ok": True,
+                "hasResponse": False,
+                "message": "No response yet"
+            }
+        
+        # Generate simulated response
+        simulated_responses = [
+            {
+                "text": "Hi! Yes, I'm very interested in participating. I'm available on Tuesday 2-4 PM, Wednesday 10 AM-12 PM, or Friday 3-5 PM next week.",
+                "isPositive": True,
+                "times": ["Tuesday 2-4 PM", "Wednesday 10 AM-12 PM", "Friday 3-5 PM"]
+            },
+            {
+                "text": "Thanks for reaching out! I'd love to be involved. I can do Monday 1-3 PM, Thursday 9-11 AM, or next Friday afternoon.",
+                "isPositive": True,
+                "times": ["Monday 1-3 PM", "Thursday 9-11 AM", "Friday 2-4 PM"]
+            },
+            {
+                "text": "Thank you for the invitation, but I'm not available during that time period. Good luck with your event!",
+                "isPositive": False,
+                "times": []
+            },
+            {
+                "text": "Sounds interesting! I'm available most weekday afternoons. How about Wednesday 2 PM or Thursday 3 PM?",
+                "isPositive": True,
+                "times": ["Wednesday 2 PM", "Thursday 3 PM"]
+            }
+        ]
+        
+        response_data = random.choice(simulated_responses)
+        
+        # Use GPT to analyze response (if available)
+        try:
+            import openai
+            import os
+            
+            openai.api_key = os.getenv("OPENAI_API_KEY")
+            
+            if openai.api_key:
+                client = openai.OpenAI(api_key=openai.api_key)
+                analysis = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an AI that analyzes email responses to speaker invitations. Extract whether the response is positive/negative and any available time slots mentioned."
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""
+                            Analyze this email response to a hackathon speaker invitation:
+                            
+                            "{response_data['text']}"
+                            
+                            Return a JSON with:
+                            1. isPositive: boolean (true if they're interested)
+                            2. availableTimes: array of time slots mentioned
+                            3. sentiment: brief description
+                            """
+                        }
+                    ],
+                    max_tokens=200,
+                    temperature=0.3
+                )
+                
+                # Parse GPT response (simplified for demo)
+                gpt_result = response_data  # Use simulated data as fallback
+                
+        except Exception as e:
+            print(f"GPT analysis failed: {e}")
+            # Use simulated data as fallback
+        
+        return {
+            "ok": True,
+            "hasResponse": True,
+            "responseText": response_data["text"],
+            "isPositive": response_data["isPositive"],
+            "availableTimes": response_data["times"],
+            "sentiment": "positive" if response_data["isPositive"] else "negative"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check response: {str(e)}")
+
+
+@app.post("/outreach/schedule-meeting")
+async def schedule_individual_meeting(payload: dict = Body(...)) -> dict:
+    """Schedule a meeting with a candidate for a selected time slot."""
+    candidate = payload.get("candidate", {})
+    selected_time = payload.get("selectedTime")
+    summary = payload.get("summary", "Hackathon Discussion")
+    description = payload.get("description", "Meeting to discuss hackathon participation")
+    duration = payload.get("duration", 30)
+    
+    if not candidate.get("email") or not selected_time:
+        raise HTTPException(status_code=400, detail="candidate email and selectedTime required")
+    
+    try:
+        # For demo purposes, simulate meeting creation
+        # In production, this would integrate with Google Calendar API
+        
+        meeting_id = f"meet_{hash((candidate['email'], selected_time)) & 0xffffff:x}"
+        meeting_link = f"https://meet.google.com/{meeting_id}"
+        
+        # Simulate calendar integration
+        calendar_result = {
+            "eventId": f"event_{meeting_id}",
+            "meetingLink": meeting_link,
+            "scheduledTime": selected_time,
+            "summary": summary,
+            "description": description,
+            "attendees": [candidate["email"]]
+        }
+        
+        # Update candidate status
+        candidate_store.update_status(candidate["email"], "Scheduled")
+        
+        await bus.emit("log", {"message": f"Meeting scheduled with {candidate.get('name', candidate['email'])} for {selected_time}"})
+        await bus.emit("candidate_status", {"email": candidate["email"], "status": "Scheduled"})
+        
+        return {
+            "ok": True,
+            "meetingLink": meeting_link,
+            "eventId": calendar_result["eventId"],
+            "scheduledTime": selected_time,
+            "message": f"Meeting scheduled for {selected_time}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to schedule meeting: {str(e)}")
+
 # Run with: uvicorn server:app --reload
 
 

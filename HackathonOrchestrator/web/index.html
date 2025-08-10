@@ -16,36 +16,17 @@
     .status-sourced { background-color: #3B82F6; }
     .status-contacted { background-color: #F59E0B; }
     .status-accepted { background-color: #10B981; }
+    .status-scheduled { background-color: #8B5CF6; }
+    .status-declined { background-color: #EF4444; }
   </style>
 </head>
 <body class="bg-gray-900 text-gray-200 antialiased">
   <div class="container mx-auto p-4 md:p-8">
-    <!-- Header -->
-    <header class="mb-8">
-      <h1 class="text-3xl md:text-4xl font-bold text-white">Hackathon Orchestrator</h1>
-      <p class="text-lg text-gray-400">AI-powered sourcing and scheduling for speakers & jurors.</p>
-      <div class="mt-2 text-sm text-gray-500">
-        <span>Frontend: <span id="frontend-url" class="text-blue-400"></span></span>
-        <span class="mx-2">|</span>
-        <span>Backend: <span id="backend-url" class="text-green-400"></span></span>
-        <span class="mx-2">|</span>
-        <span>API Port: <input type="number" id="api-port-input" value="8001" min="1000" max="9999" class="w-16 bg-gray-700 border border-gray-600 text-white rounded px-2 py-1 text-xs" /></span>
-        <button id="update-api-btn" class="ml-2 bg-gray-600 hover:bg-gray-500 text-white text-xs px-2 py-1 rounded">Update</button>
-      </div>
-    </header>
+
 
     <!-- Main Content -->
     <main>
-      <!-- Input & Launch Section -->
-      <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-        <label for="sourcing-topic" class="block text-sm font-medium text-gray-300 mb-2">Sourcing Topic</label>
-        <div class="flex flex-col sm:flex-row gap-4">
-          <input type="text" id="sourcing-topic" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 'AI in FinTech' or 'Decentralized Science'" />
-          <input type="file" id="contacts-file" accept=".csv" class="hidden" />
-          <button id="upload-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-md transition">Upload CSV</button>
-          <button id="launch-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">🚀 Launch Sourcing Agent</button>
-        </div>
-      </div>
+
 
       <!-- Speaker Finder Section -->
       <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
@@ -55,8 +36,6 @@
           <input type="text" id="speaker-topic" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 'AI in FinTech', 'Cybersecurity', 'Blockchain'" />
           <input type="number" id="speaker-count" class="w-24 bg-gray-700 border border-gray-600 text-white rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="20" min="1" max="50" value="20" />
           <button id="find-speakers-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-md">🔍 Find Speakers</button>
-          <button id="test-backend-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 shadow-md">🧪 Test Backend</button>
-          <button id="test-speakers-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 shadow-md">🎤 Test Speakers</button>
         </div>
         <div id="speaker-result" class="mt-4 hidden">
           <div class="bg-green-900 border border-green-700 rounded-lg p-4">
@@ -98,6 +77,32 @@
           <!-- Candidate List -->
           <div>
             <h2 class="text-xl font-semibold text-white mb-4">Candidate Pipeline</h2>
+            
+            <!-- Bulk Actions for Candidates -->
+            <div id="bulk-actions" class="mb-4 p-3 bg-gray-700 rounded-lg hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-300">
+                  <span id="selected-count">0</span> candidates selected
+                </span>
+                <div class="flex gap-2">
+                  <button id="select-all-btn" class="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded">
+                    Select All
+                  </button>
+                  <button id="select-none-btn" class="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded">
+                    Select None
+                  </button>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button id="send-bulk-emails-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded transition">
+                  📧 Send Emails to Selected
+                </button>
+                <button id="check-bulk-responses-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-4 py-2 rounded transition">
+                  🔍 Check All Responses
+                </button>
+              </div>
+            </div>
+            
             <div id="candidate-list" class="space-y-3">
               <!-- JS will populate this -->
               <p class="text-gray-500 text-center py-4">Launch an agent to see candidates here.</p>
@@ -163,10 +168,6 @@
 
   <script>
     // --- DOM Elements ---
-    const launchBtn = document.getElementById('launch-btn');
-    const uploadBtn = document.getElementById('upload-btn');
-    const contactsInput = document.getElementById('contacts-file');
-    const topicInput = document.getElementById('sourcing-topic');
     const logPanel = document.getElementById('log-panel');
     const candidateList = document.getElementById('candidate-list');
     const kpiSourced = document.getElementById('kpi-sourced').querySelector('p:first-child');
@@ -177,10 +178,6 @@
     const speakerTopicInput = document.getElementById('speaker-topic');
     const speakerCountInput = document.getElementById('speaker-count');
     const findSpeakersBtn = document.getElementById('find-speakers-btn');
-    const testBackendBtn = document.getElementById('test-backend-btn');
-    const testSpeakersBtn = document.getElementById('test-speakers-btn');
-    const apiPortInput = document.getElementById('api-port-input');
-    const updateApiBtn = document.getElementById('update-api-btn');
     const speakerResult = document.getElementById('speaker-result');
     const speakerError = document.getElementById('speaker-error');
     const speakerMessage = document.getElementById('speaker-message');
@@ -195,14 +192,9 @@
     // Debug: Log the API base URL
     console.log('API Base URL:', apiBase);
     console.log('Frontend URL:', window.location.href);
-    
-    // Update URL indicators
-    document.getElementById('frontend-url').textContent = window.location.href;
-    document.getElementById('backend-url').textContent = apiBase;
 
     // --- State & Mock Data ---
     let candidates = [];
-    let uploadedCsvCandidates = [];
     let logEventSource = null;
 
     // --- Core Functions ---
@@ -225,74 +217,85 @@
         return;
       }
 
-      candidates.forEach(c => {
-        const statusClasses = { Sourced: 'status-sourced', Contacted: 'status-contacted', Accepted: 'status-accepted' };
+      candidates.forEach((c, index) => {
+        const statusClasses = { 
+          Sourced: 'status-sourced', 
+          Contacted: 'status-contacted', 
+          Accepted: 'status-accepted',
+          Scheduled: 'status-scheduled',
+          Declined: 'status-declined'
+        };
         const candidateEl = document.createElement('div');
-        candidateEl.className = 'kpi-card p-3 rounded-md flex items-center justify-between';
+        candidateEl.className = 'kpi-card p-3 rounded-md';
         candidateEl.innerHTML = `
-          <div>
-            <p class="font-semibold text-white">${c.name}</p>
-            <p class="text-xs text-gray-400">${c.expertise}</p>
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" 
+                     id="candidate-${index}" 
+                     class="candidate-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                     data-index="${index}"
+                     onchange="updateSelectedCount()">
+              <div>
+                <p class="font-semibold text-white">${c.name}</p>
+                <p class="text-xs text-gray-400">${c.expertise}</p>
+                <p class="text-xs text-gray-500">${c.email}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium">${c.status}</span>
+              <div class="status-dot ${statusClasses[c.status]}"></div>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-medium">${c.status}</span>
-            <div class="status-dot ${statusClasses[c.status]}"></div>
+          
+          <!-- Individual Actions -->
+          <div class="flex gap-2 mt-2">
+            ${c.status === 'Contacted' ? `
+              <button onclick="checkCandidateResponse(${index})" 
+                      class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-3 py-1 rounded transition duration-200">
+                🔍 Check Response
+              </button>
+            ` : ''}
+            ${c.status === 'Accepted' && c.availableTimes ? `
+              <button onclick="showTimeSelection(${index})" 
+                      class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded transition duration-200">
+                📅 Schedule Meeting
+              </button>
+            ` : ''}
           </div>
+          
+          <!-- Status Information -->
+          ${c.availableTimes ? `
+            <div class="mt-2 text-xs text-green-300">
+              Available: ${c.availableTimes.join(', ')}
+            </div>
+          ` : ''}
+          ${c.responseMessage ? `
+            <div class="mt-2 p-2 bg-gray-700 rounded text-xs">
+              <strong class="text-green-300">Response:</strong> ${c.responseMessage}
+            </div>
+          ` : ''}
+          ${c.scheduledTime ? `
+            <div class="mt-2 p-2 bg-purple-900 rounded text-xs">
+              <strong class="text-purple-300">Scheduled:</strong> ${c.scheduledTime}
+              ${c.meetingLink ? `<br><a href="${c.meetingLink}" target="_blank" class="text-blue-400 hover:text-blue-300">📅 Join Meeting</a>` : ''}
+            </div>
+          ` : ''}
         `;
         candidateList.appendChild(candidateEl);
       });
-    }
-
-    function startBackendRun(topic) {
-      if (logEventSource) {
-        logEventSource.close();
-        logEventSource = null;
+      
+      // Show bulk actions if there are candidates
+      const bulkActions = document.getElementById('bulk-actions');
+      if (candidates.length > 0) {
+        bulkActions.classList.remove('hidden');
+      } else {
+        bulkActions.classList.add('hidden');
       }
-
-      // Start run
-      // New demo-first flow: call demo/run-topic which reads contacts.csv and simulates outreach
-      fetch(`${apiBase}/demo/run-topic?topic=${encodeURIComponent(topic)}`, { method: 'GET' })
-        .then(r => r.json())
-        .then(() => addLog('Run started...', 'info'))
-        .catch(() => addLog('Failed to start run', 'info'));
-
-      // Connect to logs SSE
-      logEventSource = new EventSource(`${apiBase}/stream`);
-      logEventSource.addEventListener('log', (ev) => {
-        try {
-          const data = JSON.parse(ev.data);
-          addLog(data.message, 'agent');
-        } catch (_) {}
-      });
-      logEventSource.addEventListener('candidates', (ev) => {
-        try {
-          candidates = JSON.parse(ev.data);
-          updateDashboard();
-        } catch (_) {}
-      });
-      logEventSource.addEventListener('candidate_status', (ev) => {
-        try {
-          const payload = JSON.parse(ev.data);
-          const { index, status, email } = payload;
-          if (typeof index === 'number' && candidates[index]) {
-            candidates[index].status = status;
-          } else if (email) {
-            const c = candidates.find(c => c.email === email);
-            if (c) c.status = status;
-          }
-          updateDashboard();
-        } catch (_) {}
-      });
-      logEventSource.addEventListener('done', () => {
-        addLog('Orchestration Complete.', 'success');
-        launchBtn.disabled = false;
-        launchBtn.textContent = '🚀 Launch Sourcing Agent';
-        if (logEventSource) logEventSource.close();
-      });
-      logEventSource.onerror = () => {
-        addLog('Stream disconnected.', 'info');
-      };
+      
+      updateSelectedCount();
     }
+
+
 
     // --- Speaker Finder Functions ---
     async function findSpeakers() {
@@ -353,131 +356,314 @@
       }
     }
     
-    // --- Test Backend Function ---
-    async function testBackend() {
-      testBackendBtn.disabled = true;
-      testBackendBtn.textContent = '🧪 Testing...';
+
+    
+
+    
+
+
+    // --- Bulk Selection Functions ---
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('.candidate-checkbox:checked');
+      const count = checkboxes.length;
+      const countElement = document.getElementById('selected-count');
+      const sendBulkBtn = document.getElementById('send-bulk-emails-btn');
+      const checkBulkBtn = document.getElementById('check-bulk-responses-btn');
       
-      try {
-        console.log('Testing backend connection to:', `${apiBase}/health`);
-        const response = await fetch(`${apiBase}/health`);
-        console.log('Health check response:', response.status, response.statusText);
+      if (countElement) countElement.textContent = count;
+      
+      // Enable/disable bulk action buttons based on selection
+      if (sendBulkBtn) sendBulkBtn.disabled = count === 0;
+      if (checkBulkBtn) checkBulkBtn.disabled = count === 0;
+    }
+
+    function selectAllCandidates() {
+      const checkboxes = document.querySelectorAll('.candidate-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      updateSelectedCount();
+    }
+
+    function selectNoneCandidates() {
+      const checkboxes = document.querySelectorAll('.candidate-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      updateSelectedCount();
+    }
+
+    function getSelectedCandidates() {
+      const checkboxes = document.querySelectorAll('.candidate-checkbox:checked');
+      const selectedCandidates = [];
+      
+      checkboxes.forEach(checkbox => {
+        const index = parseInt(checkbox.dataset.index);
+        if (candidates[index]) {
+          selectedCandidates.push({
+            index: index,
+            candidate: candidates[index]
+          });
+        }
+      });
+      
+      return selectedCandidates;
+    }
+
+    async function sendBulkEmails() {
+      const selected = getSelectedCandidates();
+      const sourcedCandidates = selected.filter(item => item.candidate.status === 'Sourced');
+      
+      if (sourcedCandidates.length === 0) {
+        alert('No sourced candidates selected. Please select candidates that haven\'t been contacted yet.');
+        return;
+      }
+
+      if (!confirm(`Send emails to ${sourcedCandidates.length} selected candidates?`)) {
+        return;
+      }
+
+      const sendBtn = document.getElementById('send-bulk-emails-btn');
+      const originalText = sendBtn.textContent;
+      sendBtn.disabled = true;
+      sendBtn.textContent = '📧 Sending...';
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      addLog(`Starting bulk email send to ${sourcedCandidates.length} candidates...`, 'info');
+
+      for (const item of sourcedCandidates) {
+        try {
+          addLog(`Sending email to ${item.candidate.name}...`, 'info');
+          
+          const response = await fetch(`${apiBase}/outreach/send-individual`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              candidate: item.candidate,
+              subject: `Invitation to speak at our hackathon${speakerTopicInput.value ? ' - ' + speakerTopicInput.value : ''}`,
+              bodyTemplate: `Hi {name},
+
+We're organizing an exciting hackathon and would love to invite you as a speaker/jury member.
+
+Your expertise in ${item.candidate.expertise} would be invaluable to our participants. The event is designed to foster innovation and learning in this rapidly evolving field.
+
+Would you be interested in participating? If so, could you please share your availability for the next 2-3 weeks?
+
+Looking forward to your response!
+
+Best regards,
+Hackathon Team`
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            candidates[item.index].status = 'Contacted';
+            candidates[item.index].refToken = data.refToken;
+            successCount++;
+            addLog(`✅ Email sent to ${item.candidate.name}`, 'success');
+            
+            // Auto-check for response after a delay
+            setTimeout(() => checkCandidateResponse(item.index), 15000);
+          } else {
+            throw new Error('Failed to send email');
+          }
+        } catch (error) {
+          errorCount++;
+          addLog(`❌ Failed to send email to ${item.candidate.name}: ${error.message}`, 'info');
+        }
         
+        // Small delay between emails
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      addLog(`Bulk email complete: ${successCount} sent, ${errorCount} failed`, successCount > 0 ? 'success' : 'info');
+      
+      sendBtn.disabled = false;
+      sendBtn.textContent = originalText;
+      
+      updateDashboard();
+      updateSelectedCount();
+    }
+
+    async function checkBulkResponses() {
+      const selected = getSelectedCandidates();
+      const contactedCandidates = selected.filter(item => 
+        item.candidate.status === 'Contacted' && item.candidate.refToken
+      );
+      
+      if (contactedCandidates.length === 0) {
+        alert('No contacted candidates selected. Please select candidates that have been contacted.');
+        return;
+      }
+
+      const checkBtn = document.getElementById('check-bulk-responses-btn');
+      const originalText = checkBtn.textContent;
+      checkBtn.disabled = true;
+      checkBtn.textContent = '🔍 Checking...';
+
+      addLog(`Checking responses for ${contactedCandidates.length} candidates...`, 'info');
+
+      for (const item of contactedCandidates) {
+        await checkCandidateResponse(item.index);
+        // Small delay between checks
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      checkBtn.disabled = false;
+      checkBtn.textContent = originalText;
+      
+      addLog(`Bulk response check complete`, 'info');
+    }
+
+    // --- Individual Candidate Functions ---
+
+    async function checkCandidateResponse(candidateIndex) {
+      const candidate = candidates[candidateIndex];
+      if (!candidate || !candidate.refToken) return;
+
+      try {
+        addLog(`Checking for response from ${candidate.name}...`, 'info');
+        
+        const response = await fetch(`${apiBase}/outreach/check-response`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            refToken: candidate.refToken,
+            candidateEmail: candidate.email
+          })
+        });
+
         if (response.ok) {
           const data = await response.json();
-          console.log('Health check data:', data);
-          addLog('✅ Backend is connected and healthy!', 'success');
-          alert('✅ Backend is connected and healthy!');
-        } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          if (data.hasResponse) {
+            candidate.responseMessage = data.responseText;
+            
+            if (data.isPositive) {
+              candidate.status = 'Accepted';
+              candidate.availableTimes = data.availableTimes || [];
+              addLog(`✅ ${candidate.name} responded positively! Available times: ${candidate.availableTimes.join(', ')}`, 'success');
+            } else {
+              candidate.status = 'Declined';
+              addLog(`${candidate.name} declined the invitation.`, 'info');
+            }
+            
+            updateDashboard();
+          } else {
+            addLog(`No response yet from ${candidate.name}`, 'info');
+            // Continue monitoring
+            setTimeout(() => checkCandidateResponse(candidateIndex), 30000); // Check again in 30 seconds
+          }
         }
       } catch (error) {
-        console.error('Backend test failed:', error);
-        addLog(`❌ Backend test failed: ${error.message}`, 'info');
-        alert(`❌ Backend test failed: ${error.message}`);
-      } finally {
-        testBackendBtn.disabled = false;
-        testBackendBtn.textContent = '🧪 Test Backend';
+        addLog(`❌ Error checking response from ${candidate.name}: ${error.message}`, 'info');
       }
     }
-    
-    // --- Update API Port Function ---
-    function updateApiPort() {
-      const newPort = apiPortInput.value;
-      if (newPort && newPort !== apiPort) {
-        apiPort = newPort;
-        apiBase = `http://127.0.0.1:${apiPort}`;
-        document.getElementById('backend-url').textContent = apiBase;
-        console.log('API port updated to:', apiPort);
-        console.log('New API base:', apiBase);
-        addLog(`API port updated to ${apiPort}`, 'info');
-      }
-    }
-    
-    // --- Test Speakers Endpoint Function ---
-    async function testSpeakersEndpoint() {
-      testSpeakersBtn.disabled = true;
-      testSpeakersBtn.textContent = '🎤 Testing...';
+
+    function showTimeSelection(candidateIndex) {
+      const candidate = candidates[candidateIndex];
+      if (!candidate || !candidate.availableTimes) return;
+
+      // Create modal for time selection
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+          <h3 class="text-lg font-semibold text-white mb-4">Schedule Meeting with ${candidate.name}</h3>
+          <p class="text-gray-400 mb-4">Select a time slot:</p>
+          <div class="space-y-2 mb-4">
+            ${candidate.availableTimes.map((time, index) => `
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="radio" name="timeSlot" value="${time}" class="text-blue-600">
+                <span class="text-gray-300">${time}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div class="flex gap-2 justify-end">
+            <button onclick="closeTimeModal()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
+              Cancel
+            </button>
+            <button onclick="scheduleMeeting(${candidateIndex})" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+              Schedule Meeting
+            </button>
+          </div>
+        </div>
+      `;
       
+      document.body.appendChild(modal);
+      window.currentTimeModal = modal;
+    }
+
+    function closeTimeModal() {
+      if (window.currentTimeModal) {
+        document.body.removeChild(window.currentTimeModal);
+        window.currentTimeModal = null;
+      }
+    }
+
+    async function scheduleMeeting(candidateIndex) {
+      const candidate = candidates[candidateIndex];
+      const selectedTime = document.querySelector('input[name="timeSlot"]:checked')?.value;
+      
+      if (!selectedTime) {
+        alert('Please select a time slot');
+        return;
+      }
+
       try {
-        console.log('Testing speakers endpoint:', `${apiBase}/speakers/health`);
-        const response = await fetch(`${apiBase}/speakers/health`);
-        console.log('Speakers health check response:', response.status, response.statusText);
+        addLog(`Scheduling meeting with ${candidate.name} for ${selectedTime}...`, 'info');
         
+        const response = await fetch(`${apiBase}/outreach/schedule-meeting`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            candidate: candidate,
+            selectedTime: selectedTime,
+            summary: `Hackathon Discussion`,
+            description: `Meeting with ${candidate.name} to discuss their participation in our hackathon`,
+            duration: 30
+          })
+        });
+
         if (response.ok) {
           const data = await response.json();
-          console.log('Speakers health check data:', data);
-          addLog('✅ Speakers endpoint is healthy!', 'success');
-          alert('✅ Speakers endpoint is healthy!');
+          candidate.status = 'Scheduled';
+          candidate.meetingLink = data.meetingLink;
+          candidate.scheduledTime = selectedTime;
+          
+          updateDashboard();
+          addLog(`✅ Meeting scheduled with ${candidate.name} for ${selectedTime}`, 'success');
+          closeTimeModal();
+          
+          if (data.meetingLink) {
+            alert(`Meeting scheduled! Join link: ${data.meetingLink}`);
+          }
         } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error('Failed to schedule meeting');
         }
       } catch (error) {
-        console.error('Speakers endpoint test failed:', error);
-        addLog(`❌ Speakers endpoint test failed: ${error.message}`, 'info');
-        alert(`❌ Speakers endpoint test failed: ${error.message}`);
-      } finally {
-        testSpeakersBtn.disabled = false;
-        testSpeakersBtn.textContent = '🎤 Test Speakers';
+        addLog(`❌ Failed to schedule meeting with ${candidate.name}: ${error.message}`, 'info');
       }
     }
 
     // --- Event Listeners ---
-    launchBtn.addEventListener('click', () => {
-      const topic = topicInput.value.trim();
-      if (!topic) {
-        alert('Please enter a sourcing topic.');
-        return;
-      }
-
-      // Reset UI
-      launchBtn.disabled = true;
-      launchBtn.textContent = 'Agents Running...';
-      logPanel.innerHTML = '';
-      candidates = [];
-      updateDashboard();
-
-      addLog(`Initializing agents for topic: "${topic}"`, 'info');
-      startBackendRun(topic);
-    });
-
-    // CSV upload handlers
-    uploadBtn.addEventListener('click', () => contactsInput.click());
     
     // Speaker finder handler
     findSpeakersBtn.addEventListener('click', findSpeakers);
     
-    // Test backend handler
-    testBackendBtn.addEventListener('click', testBackend);
-    
-    // Update API port handler
-    updateApiBtn.addEventListener('click', updateApiPort);
-    
-    // Test speakers endpoint handler
-    testSpeakersBtn.addEventListener('click', testSpeakersEndpoint);
-    
-    contactsInput.addEventListener('change', async () => {
-      const file = contactsInput.files[0];
-      if (!file) return;
-      const text = await file.text();
-      uploadedCsvCandidates = [];
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      const [header, ...rows] = lines;
-      const cols = header.split(',').map(s => s.trim().toLowerCase());
-      const idxName = cols.indexOf('name');
-      const idxEmail = cols.indexOf('email');
-      const idxExpertise = cols.indexOf('expertise');
-      rows.forEach(r => {
-        const parts = r.split(',');
-        const name = (parts[idxName] || '').trim();
-        const email = (parts[idxEmail] || '').trim();
-        const expertise = (parts[idxExpertise] || '').trim();
-        if (email) uploadedCsvCandidates.push({ name, email, expertise, status: 'Sourced' });
-      });
-      addLog(`Loaded ${uploadedCsvCandidates.length} contacts from CSV.`, 'info');
-      candidates = uploadedCsvCandidates.slice();
-      updateDashboard();
-    });
+    // Bulk selection handlers
+    document.getElementById('select-all-btn').addEventListener('click', selectAllCandidates);
+    document.getElementById('select-none-btn').addEventListener('click', selectNoneCandidates);
+    document.getElementById('send-bulk-emails-btn').addEventListener('click', sendBulkEmails);
+    document.getElementById('check-bulk-responses-btn').addEventListener('click', checkBulkResponses);
 
     // Initial state
     updateDashboard();
